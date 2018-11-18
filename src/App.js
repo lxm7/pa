@@ -1,30 +1,40 @@
 import React, { Component } from 'react';
 import GoogleMapReact from 'google-map-react';
 import axios from 'axios';
+import Select from 'react-select';
+import Geosuggest from 'react-geosuggest';
 
 import './App.css';
 import Marker from './Marker.js';
+import { setOptions, setPolys, fetchArea } from './utils.js';
+import { BASE_URL } from './constants';
 
 class App extends Component {
-    state = { markers: [] }
+    state = { markers: [], locations: [], selectedOption: null, setPolys: [] }
+    
+    handleChange = (selectedOption) => {
+      this.setState({ selectedOption });
+      console.log(`Option selected:`, selectedOption);
+    }
 
     componentDidMount() {
-        axios.get('https://data.police.uk/api/crimes-street/all-crime?poly=52.268,0.543:52.794,0.238:52.130,0.478')
+        axios.get('wpc.json')
             .then(response => {
-                console.log(process.env.GOOGLE_MAPS_API_KEY)
-                console.log(process.env.REACT_APP_DEV_API_URL)
+                const locations = setOptions(response);
+                this.setState({ locations, setPolys: setPolys(response)[0] })
+            })
+            .catch(error => {
+                console.log(error);
+            })
 
+        axios.get(`${BASE_URL}/crimes-street/all-crime?poly=52.268,0.543:52.794,0.238:52.130,0.478`)
+            .then(response => {
+                console.log(response.data)
                 this.setState({ markers: response.data })
             })
             .catch(error => {
                 console.log(error);
             })
-        
-        // axios.get(process.env.GOOGLE_MAPS_API_KEY)
-        //     .then(response => {
-        //         console.log(response.data)
-        //         this.setState({ key: response.data })
-        //     })
     }
 
     static defaultProps = {
@@ -36,7 +46,8 @@ class App extends Component {
     };
 
     render() {
-        const { markers, key } = this.state;
+        const { markers, locations, selectedOption } = this.state;
+        
         return (
             <div>
                 <div className='nav'>
@@ -46,11 +57,20 @@ class App extends Component {
                     API to see which area have the most reported crimes.</p>
 
                     <p>Toggle the data with the filters below coming soon...</p>
+                    
+                    <Select
+                        value={selectedOption}
+                        onChange={this.handleChange}
+                        options={locations}
+                    />
                 </div>
 
                 <div style={{ height: '100vh', width: '75%',  float: 'left' }}>
                     <GoogleMapReact
-                        bootstrapURLKeys={{ key }}
+                        bootstrapURLKeys={{
+                            key: process.env.PA_GOOGLE_MAPS_API_KEY,
+                            libraries: ['places', 'drawing'],
+                        }}
                         defaultCenter={this.props.center}
                         defaultZoom={this.props.zoom}
                     >
