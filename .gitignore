@@ -25,4 +25,4 @@ yarn-error.log*
 
 # Polys
 lad.json
-# wpc.json
+# git push -u origin master
